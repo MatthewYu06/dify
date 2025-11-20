@@ -131,12 +131,12 @@ class TestPartnerTenants:
 
     def test_put_billing_service_json_decode_error(self, app, mock_account, mock_billing_service, mock_decorators):
         """Test handling of billing service JSON decode error.
-        
+
         When billing service returns non-200 status code with invalid JSON response,
         response.json() raises JSONDecodeError. This exception propagates to the controller
         and should be handled by the global error handler (handle_general_exception),
         which returns a 500 status code with error details.
-        
+
         Note: In unit tests, when directly calling resource.put(), the exception is raised
         directly. In actual Flask application, the error handler would catch it and return
         a 500 response with JSON: {"code": "unknown", "message": "...", "status": 500}
@@ -170,7 +170,7 @@ class TestPartnerTenants:
                 # which returns: {"code": "unknown", "message": str(e), "status": 500}
                 with pytest.raises(json.JSONDecodeError) as exc_info:
                     resource.put(partner_key_encoded)
-                
+
                 # Verify the exception is JSONDecodeError
                 assert isinstance(exc_info.value, json.JSONDecodeError)
                 assert "Expecting value" in str(exc_info.value)

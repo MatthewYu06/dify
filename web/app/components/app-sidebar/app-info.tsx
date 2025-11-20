@@ -272,7 +272,7 @@ const AppInfo = ({ expand, onlyShowDetail = false, openState = false, onDetailEx
 
   const secondaryOperations: Operation[] = [
     // Import DSL (conditional)
-    ...(appDetail.mode !== AppModeEnum.AGENT_CHAT && (appDetail.mode === AppModeEnum.ADVANCED_CHAT || appDetail.mode === AppModeEnum.WORKFLOW)) ? [{
+    ...(appDetail.mode === AppModeEnum.ADVANCED_CHAT || appDetail.mode === AppModeEnum.WORKFLOW) ? [{
       id: 'import',
       title: t('workflow.common.importDSL'),
       icon: <RiFileUploadLine />,
@@ -304,7 +304,7 @@ const AppInfo = ({ expand, onlyShowDetail = false, openState = false, onDetailEx
   ]
 
   // Keep the switch operation separate as it's not part of the main operations
-  const switchOperation = (appDetail.mode !== AppModeEnum.AGENT_CHAT && (appDetail.mode === AppModeEnum.COMPLETION || appDetail.mode === AppModeEnum.CHAT)) ? {
+  const switchOperation = (appDetail.mode === AppModeEnum.COMPLETION || appDetail.mode === AppModeEnum.CHAT) ? {
     id: 'switch',
     title: t('app.switch'),
     icon: <RiExchange2Line />,

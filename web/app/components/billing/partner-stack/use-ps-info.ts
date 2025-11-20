@@ -7,7 +7,15 @@ import { useCallback } from 'react'
 
 const usePSInfo = () => {
   const searchParams = useSearchParams()
-  const psInfoInCookie = JSON.parse(Cookies.get(PARTNER_STACK_CONFIG.cookieName) || '{}')
+  const psInfoInCookie = (() => {
+    try {
+      return JSON.parse(Cookies.get(PARTNER_STACK_CONFIG.cookieName) || '{}')
+    }
+    catch (e) {
+      console.error('Failed to parse partner stack info from cookie:', e)
+      return {}
+    }
+  })()
   const psPartnerKey = searchParams.get('ps_partner_key') || psInfoInCookie?.partnerKey
   const psClickId = searchParams.get('ps_xid') || psInfoInCookie?.clickId
   const isPSChanged = psInfoInCookie?.partnerKey !== psPartnerKey || psInfoInCookie?.clickId !== psClickId
@@ -15,6 +23,7 @@ const usePSInfo = () => {
     setTrue: setBind,
   }] = useBoolean(false)
   const { mutateAsync } = useBindPartnerStackInfo()
+  // Save to top domain. cloud.dify.ai => .dify.ai
   const domain = globalThis.location.hostname.replace('cloud', '')
 
   const saveOrUpdate = useCallback(() => {
@@ -28,7 +37,6 @@ const usePSInfo = () => {
     }), {
       expires: PARTNER_STACK_CONFIG.saveCookieDays,
       path: '/',
-        // Save to top domain. cloud.dify.ai => .dify.ai
       domain,
     })
   }, [psPartnerKey, psClickId, isPSChanged])

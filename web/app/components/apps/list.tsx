@@ -234,7 +234,7 @@ const List: FC<Props> = ({
           </div>
         )}
 
-        <div className='sticky top-0 z-10 flex flex-wrap items-center justify-between gap-y-2 bg-background-body px-12 pb-2 pt-4 leading-[56px]'>
+        <div className='sticky top-0 z-10 flex flex-wrap items-center justify-between gap-y-2 bg-background-body px-12 pb-5 pt-7'>
           <TabSliderNew
             value={activeTab}
             onChange={setActiveTab}
