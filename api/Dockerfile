@@ -23,7 +23,7 @@ RUN apt-get update \
 
 # Install Python dependencies
 COPY pyproject.toml uv.lock ./
-RUN uv sync --locked --no-dev
+RUN uv sync --locked --no-dev && uv cache prune --ci
 
 # production stage
 FROM base AS production
@@ -48,10 +48,10 @@ ENV PYTHONIOENCODING=utf-8
 
 WORKDIR /app/api
 
-RUN \
-    apt-get update \
+RUN set -eux; \
+    apt-get update; \
     # Install dependencies
-    && apt-get install -y --no-install-recommends \
+    apt-get install -y --no-install-recommends \
         # basic environment
         curl nodejs \
         # for gmpy2 \
@@ -63,25 +63,34 @@ RUN \
         # install a package to improve the accuracy of guessing mime type and file extension
         media-types \
         # install libmagic to support the use of python-magic guess MIMETYPE
-        libmagic1 \
-    && apt-get autoremove -y \
-    && rm -rf /var/lib/apt/lists/*
+        libmagic1; \
+    apt-get autoremove -y; \
+    rm -rf /var/lib/apt/lists/*
 
 # Copy Python environment and packages
 ENV VIRTUAL_ENV=/app/api/.venv
 COPY --from=packages ${VIRTUAL_ENV} ${VIRTUAL_ENV}
 ENV PATH="${VIRTUAL_ENV}/bin:${PATH}"
 
-# Download nltk data
-RUN mkdir -p /usr/local/share/nltk_data && NLTK_DATA=/usr/local/share/nltk_data python -c "import nltk; nltk.download('punkt'); nltk.download('averaged_perceptron_tagger'); nltk.download('stopwords')" \
-    && chmod -R 755 /usr/local/share/nltk_data
-
 ENV TIKTOKEN_CACHE_DIR=/app/api/.tiktoken_cache
-
-RUN python -c "import tiktoken; tiktoken.encoding_for_model('gpt2')"
 
 # Copy source code
 COPY . /app/api/
+
+# Download NLTK data and warm tiktoken cache late in the build to reduce rebuild scope
+RUN set -eux; \
+    mkdir -p /usr/local/share/nltk_data; \
+    NLTK_DATA=/usr/local/share/nltk_data python - <<'PY'
+import nltk
+nltk.download('punkt')
+nltk.download('averaged_perceptron_tagger')
+nltk.download('stopwords')
+PY
+    chmod -R 755 /usr/local/share/nltk_data; \
+    python - <<'PY'
+import tiktoken
+tiktoken.encoding_for_model('gpt2')
+PY
 
 # Copy entrypoint
 COPY docker/entrypoint.sh /entrypoint.sh
