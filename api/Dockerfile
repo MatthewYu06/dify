@@ -74,15 +74,15 @@ ENV PATH="${VIRTUAL_ENV}/bin:${PATH}"
 
 ENV TIKTOKEN_CACHE_DIR=/app/api/.tiktoken_cache
 
-# Copy source code
-COPY . /app/api/
-
-# Download NLTK data and warm tiktoken cache late in the build to reduce rebuild scope
+# Pre-fetch NLTK data and warm tiktoken cache before copying source to maximize layer reuse
 RUN set -eux; \
     mkdir -p /usr/local/share/nltk_data; \
     NLTK_DATA=/usr/local/share/nltk_data python -c "import nltk; nltk.download('punkt'); nltk.download('averaged_perceptron_tagger'); nltk.download('stopwords')"; \
     chmod -R 755 /usr/local/share/nltk_data; \
     python -c "import tiktoken; tiktoken.encoding_for_model('gpt2')"
+
+# Copy source code
+COPY . /app/api/
 
 # Copy entrypoint
 COPY docker/entrypoint.sh /entrypoint.sh
