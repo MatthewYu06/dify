@@ -52,6 +52,12 @@ ENV PYTHONIOENCODING=utf-8
 
 WORKDIR /app/api
 
+# Create non-root user
+ARG dify_uid=1001
+RUN groupadd -r -g ${dify_uid} dify && \
+    useradd -r -u ${dify_uid} -g ${dify_uid} -s /bin/bash dify && \
+    chown -R dify:dify /app
+
 RUN set -eux; \
     apt-get update; \
     # Install dependencies
@@ -65,9 +71,9 @@ RUN set -eux; \
         # install fonts to support the use of tools like pypdfium2
         fonts-noto-cjk \
         # install a package to improve the accuracy of guessing mime type and file extension
-    media-types \
-    # install libmagic to support the use of python-magic guess MIMETYPE
-    libmagic1; \
+        media-types \
+        # install libmagic to support the use of python-magic guess MIMETYPE
+        libmagic1; \
     apt-get autoremove -y; \
     rm -rf /var/lib/apt/lists/*
 
@@ -84,24 +90,19 @@ RUN set -eux; \
     mkdir -p /usr/local/share/nltk_data; \
     NLTK_DATA=/usr/local/share/nltk_data python -c "import nltk; nltk.download('punkt'); nltk.download('averaged_perceptron_tagger'); nltk.download('stopwords')"; \
     chmod -R 755 /usr/local/share/nltk_data; \
-    python -c "import tiktoken; tiktoken.encoding_for_model('gpt2')"
+    python -c "import tiktoken; tiktoken.encoding_for_model('gpt2')"; \
+    chown -R dify:dify ${TIKTOKEN_CACHE_DIR}
 
 # Copy source code
-COPY . /app/api/
+COPY --chown=dify:dify . /app/api/
 
-# Copy entrypoint
-COPY docker/entrypoint.sh /entrypoint.sh
-RUN chmod +x /entrypoint.sh
-
-# Create non-root user and set permissions
-RUN groupadd -r -g 1001 dify && \
-    useradd -r -u 1001 -g 1001 -s /bin/bash dify && \
-    mkdir -p /home/dify && \
-    chown -R 1001:1001 /app /home/dify ${TIKTOKEN_CACHE_DIR} /entrypoint.sh
+# Prepare entrypoint script
+COPY --chown=dify:dify --chmod=755 docker/entrypoint.sh /entrypoint.sh
 
 ARG COMMIT_SHA
 ENV COMMIT_SHA=${COMMIT_SHA}
 ENV NLTK_DATA=/usr/local/share/nltk_data
-USER 1001
+
+USER dify
 
 ENTRYPOINT ["/bin/bash", "/entrypoint.sh"]
