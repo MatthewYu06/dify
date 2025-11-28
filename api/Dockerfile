@@ -19,11 +19,15 @@ RUN apt-get update \
           # basic environment
           g++ \
           # for building gmpy2
-          libmpfr-dev libmpc-dev
+          libmpfr-dev libmpc-dev \
+    && rm -rf /var/lib/apt/lists/*
 
 # Install Python dependencies
 COPY pyproject.toml uv.lock ./
-RUN uv sync --locked --no-dev && uv cache prune --ci
+# Export without hashes because we'll build local wheels (hashes would mismatch)
+RUN uv export --locked --no-dev --format requirements.txt --no-hashes --output-file /tmp/requirements.txt \
+    && pip wheel --no-cache-dir -r /tmp/requirements.txt -w /wheels \
+    && uv cache prune --ci
 
 # production stage
 FROM base AS production
@@ -61,16 +65,17 @@ RUN set -eux; \
         # install fonts to support the use of tools like pypdfium2
         fonts-noto-cjk \
         # install a package to improve the accuracy of guessing mime type and file extension
-        media-types \
-        # install libmagic to support the use of python-magic guess MIMETYPE
-        libmagic1; \
+    media-types \
+    # install libmagic to support the use of python-magic guess MIMETYPE
+    libmagic1; \
     apt-get autoremove -y; \
     rm -rf /var/lib/apt/lists/*
 
-# Copy Python environment and packages
-ENV VIRTUAL_ENV=/app/api/.venv
-COPY --from=packages ${VIRTUAL_ENV} ${VIRTUAL_ENV}
-ENV PATH="${VIRTUAL_ENV}/bin:${PATH}"
+# Install Python packages from prebuilt wheels (no virtualenv to avoid copying ~1.8GB layer)
+COPY --from=packages /tmp/requirements.txt /tmp/requirements.txt
+COPY --from=packages /wheels /wheels
+RUN pip install --no-cache-dir --no-index --find-links /wheels -r /tmp/requirements.txt \
+    && rm -rf /wheels /tmp/requirements.txt
 
 ENV TIKTOKEN_CACHE_DIR=/app/api/.tiktoken_cache
 
