@@ -1,14 +1,13 @@
 """Base class for agent strategies."""
 
+from __future__ import annotations
+
 import json
 import re
 import time
 from abc import ABC, abstractmethod
 from collections.abc import Callable, Generator
 from typing import TYPE_CHECKING, Any
-
-if TYPE_CHECKING:
-    pass
 
 from core.agent.entities import AgentLog, AgentResult, ExecutionContext
 from core.file import File
@@ -23,13 +22,14 @@ from core.model_runtime.entities import (
 )
 from core.model_runtime.entities.llm_entities import LLMUsage
 from core.model_runtime.entities.message_entities import TextPromptMessageContent
-from core.tools.__base.tool import Tool
 from core.tools.entities.tool_entities import ToolInvokeMessage, ToolInvokeMeta
-from core.tools.tool_engine import DifyWorkflowCallbackHandler, ToolEngine
+
+if TYPE_CHECKING:
+    from core.tools.__base.tool import Tool
 
 # Type alias for tool invoke hook
 # Returns: (response_content, message_file_ids, tool_invoke_meta)
-ToolInvokeHook = Callable[[Tool, dict[str, Any], str], tuple[str, list[str], ToolInvokeMeta]]
+ToolInvokeHook = Callable[["Tool", dict[str, Any], str], tuple[str, list[str], ToolInvokeMeta]]
 
 
 class AgentPattern(ABC):
@@ -158,6 +158,7 @@ class AgentPattern(ABC):
     def _create_log(
         self,
         label: str,
+        log_type: AgentLog.LogType,
         status: AgentLog.LogStatus,
         data: dict[str, Any] | None = None,
         parent_id: str | None = None,
@@ -172,6 +173,7 @@ class AgentPattern(ABC):
 
         return AgentLog(
             label=label,
+            log_type=log_type,
             status=status,
             data=data or {},
             parent_id=parent_id,
@@ -326,6 +328,9 @@ class AgentPattern(ABC):
             return response_content, [], tool_invoke_meta
 
         # Default: use generic_invoke for workflow scenarios
+        # Import here to avoid circular import
+        from core.tools.tool_engine import DifyWorkflowCallbackHandler, ToolEngine
+
         tool_response = ToolEngine().generic_invoke(
             tool=tool_instance,
             tool_parameters=tool_args,

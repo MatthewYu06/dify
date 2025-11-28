@@ -1,8 +1,10 @@
 """ReAct strategy implementation."""
 
+from __future__ import annotations
+
 import json
 from collections.abc import Generator
-from typing import Any, Union
+from typing import TYPE_CHECKING, Any, Union
 
 from core.agent.entities import AgentLog, AgentResult, AgentScratchpadUnit, ExecutionContext
 from core.agent.output_parser.cot_output_parser import CotAgentOutputParser
@@ -16,9 +18,11 @@ from core.model_runtime.entities import (
     PromptMessage,
     SystemPromptMessage,
 )
-from core.tools.__base.tool import Tool
 
 from .base import AgentPattern, ToolInvokeHook
+
+if TYPE_CHECKING:
+    from core.tools.__base.tool import Tool
 
 
 class ReActStrategy(AgentPattern):
@@ -74,8 +78,9 @@ class ReActStrategy(AgentPattern):
             react_state = False
             round_log = self._create_log(
                 label=f"ROUND {iteration_step}",
+                log_type=AgentLog.LogType.ROUND,
                 status=AgentLog.LogStatus.START,
-                data={},
+                data={"round_index": iteration_step},
             )
             yield round_log
 
@@ -87,6 +92,7 @@ class ReActStrategy(AgentPattern):
 
             model_log = self._create_log(
                 label=f"{self.model_instance.model} Thought",
+                log_type=AgentLog.LogType.THOUGHT,
                 status=AgentLog.LogStatus.START,
                 data={},
                 parent_id=round_log.id,
@@ -344,12 +350,11 @@ class ReActStrategy(AgentPattern):
         # Start tool log
         tool_log = self._create_log(
             label=f"CALL {tool_name}",
+            log_type=AgentLog.LogType.TOOL_CALL,
             status=AgentLog.LogStatus.START,
             data={
-                "input": {
-                    "name": tool_name,
-                    "args": tool_args,
-                },
+                "tool_name": tool_name,
+                "tool_args": tool_args,
             },
             parent_id=round_log.id,
         )

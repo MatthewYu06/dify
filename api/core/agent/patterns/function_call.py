@@ -49,14 +49,16 @@ class FunctionCallStrategy(AgentPattern):
             function_call_state = False
             round_log = self._create_log(
                 label=f"ROUND {iteration_step}",
+                log_type=AgentLog.LogType.ROUND,
                 status=AgentLog.LogStatus.START,
-                data={},
+                data={"round_index": iteration_step},
             )
             yield round_log
             # On last iteration, remove tools to force final answer
             current_tools: list[PromptMessageTool] = [] if iteration_step == max_iterations else prompt_tools
             model_log = self._create_log(
                 label=f"{self.model_instance.model} Thought",
+                log_type=AgentLog.LogType.THOUGHT,
                 status=AgentLog.LogStatus.START,
                 data={},
                 parent_id=round_log.id,
@@ -236,12 +238,12 @@ class FunctionCallStrategy(AgentPattern):
         # Create tool call log
         tool_call_log = self._create_log(
             label=f"CALL {tool_name}",
+            log_type=AgentLog.LogType.TOOL_CALL,
             status=AgentLog.LogStatus.START,
             data={
-                "input": {
-                    "name": tool_name,
-                    "args": tool_args,
-                },
+                "tool_call_id": tool_call_id,
+                "tool_name": tool_name,
+                "tool_args": tool_args,
             },
             parent_id=round_log.id,
         )

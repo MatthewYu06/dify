@@ -144,9 +144,9 @@ class AgentAppRunner(BaseAgentRunner):
                     yield output
 
                 elif isinstance(output, AgentLog):
-                    # Handle Agent Log
+                    # Handle Agent Log using log_type for type-safe dispatch
                     if output.status == AgentLog.LogStatus.START:
-                        if output.label.startswith("ROUND"):
+                        if output.log_type == AgentLog.LogType.ROUND:
                             # Start of a new round
                             message_file_ids: list[str] = []
                             current_agent_thought_id = self.create_agent_thought(
@@ -158,14 +158,13 @@ class AgentAppRunner(BaseAgentRunner):
                             )
                             has_published_thought = False
 
-                        elif output.label.startswith("CALL"):
+                        elif output.log_type == AgentLog.LogType.TOOL_CALL:
                             if current_agent_thought_id is None:
                                 continue
 
-                            # Tool call start
-                            tool_data = output.data.get("input", {})
-                            current_tool_name = tool_data.get("name", "")
-                            tool_input = tool_data.get("args", {})
+                            # Tool call start - extract data from structured fields
+                            current_tool_name = output.data.get("tool_name", "")
+                            tool_input = output.data.get("tool_args", {})
 
                             self.save_agent_thought(
                                 agent_thought_id=current_agent_thought_id,
@@ -183,10 +182,10 @@ class AgentAppRunner(BaseAgentRunner):
                             )
 
                     elif output.status == AgentLog.LogStatus.SUCCESS:
-                        if output.label.endswith("Thought"):
+                        if output.log_type == AgentLog.LogType.THOUGHT:
                             pass
 
-                        elif output.label.startswith("CALL"):
+                        elif output.log_type == AgentLog.LogType.TOOL_CALL:
                             if current_agent_thought_id is None:
                                 continue
 
@@ -218,7 +217,7 @@ class AgentAppRunner(BaseAgentRunner):
                                 PublishFrom.APPLICATION_MANAGER,
                             )
 
-                        elif output.label.startswith("ROUND"):
+                        elif output.log_type == AgentLog.LogType.ROUND:
                             if current_agent_thought_id is None:
                                 continue
 

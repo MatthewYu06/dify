@@ -582,6 +582,15 @@ class LoopNodeCompletedStreamResponse(StreamResponse):
     data: Data
 
 
+class ChunkType(StrEnum):
+    """Stream chunk type for LLM-related events."""
+
+    TEXT = "text"  # Normal text streaming
+    FUNCTION_CALL = "function_call"  # Function call arguments streaming
+    TOOL_RESULT = "tool_result"  # Tool execution result
+    THOUGHT = "thought"  # Agent thinking process (ReAct)
+
+
 class TextChunkStreamResponse(StreamResponse):
     """
     TextChunkStreamResponse entity
@@ -594,6 +603,28 @@ class TextChunkStreamResponse(StreamResponse):
 
         text: str
         from_variable_selector: list[str] | None = None
+
+        # Extended fields for Agent/Tool streaming
+        chunk_type: ChunkType = ChunkType.TEXT
+        """type of the chunk"""
+
+        # Function call fields (when chunk_type == FUNCTION_CALL)
+        tool_call_id: str | None = None
+        """unique identifier for this tool call"""
+        tool_name: str | None = None
+        """name of the tool being called"""
+        tool_arguments: str | None = None
+        """accumulated tool arguments JSON"""
+
+        # Tool result fields (when chunk_type == TOOL_RESULT)
+        tool_files: list[str] = Field(default_factory=list)
+        """file IDs produced by tool"""
+        tool_error: str | None = None
+        """error message if tool failed"""
+
+        # Thought fields (when chunk_type == THOUGHT)
+        round_index: int | None = None
+        """current iteration round"""
 
     event: StreamEvent = StreamEvent.TEXT_CHUNK
     data: Data

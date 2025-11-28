@@ -144,6 +144,13 @@ class AgentLog(BaseModel):
     Agent Log.
     """
 
+    class LogType(StrEnum):
+        """Type of agent log entry."""
+
+        ROUND = "round"  # A complete iteration round
+        THOUGHT = "thought"  # LLM thinking/reasoning
+        TOOL_CALL = "tool_call"  # Tool invocation
+
     class LogMetadata(StrEnum):
         STARTED_AT = "started_at"
         FINISHED_AT = "finished_at"
@@ -161,6 +168,7 @@ class AgentLog(BaseModel):
 
     id: str = Field(default_factory=lambda: str(uuid.uuid4()), description="The id of the log")
     label: str = Field(..., description="The label of the log")
+    log_type: LogType = Field(..., description="The type of the log")
     parent_id: str | None = Field(default=None, description="Leave empty for root log")
     error: str | None = Field(default=None, description="The error message")
     status: LogStatus = Field(..., description="The status of the log")
